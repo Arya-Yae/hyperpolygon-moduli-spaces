@@ -13,7 +13,7 @@ import {
 } from "./solver.js";
 import { makeOrientor } from "./orientation.js";
 import { shortSubsets, chamberInterval, applyBetaDrag, breakingSubsets } from "./chambers.js";
-import { makeSideView, probeExteriorMap, attachmentRs, PERM, CAP_NEAR_INF_W, PARALLEL_TOL } from "./sideview.js";
+import { makeSideView, probeExteriorMap, attachmentRs, PERM, CAP_NEAR_INF_W, PARALLEL_TOL, legPairSine } from "./sideview.js";
 import { makeTutorial } from "./tutorial.js";
 
 // Solve clamp: t = 1 is genuinely singular (the y-solve's t/(1-t)
@@ -1289,10 +1289,10 @@ function activate(container) {
     }
   }
 
-  // Task 1 parallel-pair state. legParallel[p] tracks whether the angle
-  // between the v-side directions of LEG_PAIRS[p] is parallel
-  // (sine below the threshold, which matches sideview.js's probe
-  // tolerance). A pair entering
+  // Task 1 parallel-pair state. legParallel[p] tracks whether the two legs
+  // of LEG_PAIRS[p] have PARALLEL x-columns, via the shared sideview.js
+  // predicate legPairSine (see solveAndDraw) — the SAME measure the
+  // attachment probe uses. A pair entering
   // parallelism fires ONE yellow blink (a smooth in-and-out pulse over
   // BLINK_PERIOD, played in the render loop); while a pair stays
   // parallel (the straight pair at an attachment snap) both v-sides hold
@@ -1310,8 +1310,9 @@ function activate(container) {
     [2, 3],
   ];
   // alias of sideview.js's PARALLEL_TOL (imported): the polygon view's
-  // straight-pair highlight and the side view's attachment-pair probe must
-  // never disagree about which pair is straight
+  // straight-pair highlight and the side view's attachment-pair probe share
+  // both this threshold AND legPairSine, so they cannot disagree about which
+  // pair is straight
   const PAIR_SINE_TOL = PARALLEL_TOL;
   const BLINK_PERIOD_MS = 0.9; // blink clock: (now - blinkStart) is a performance.now() delta (ms)
   const legParallel = new Array(6).fill(false);
@@ -1582,35 +1583,21 @@ function activate(container) {
     // y half, rotated by the current phi
     matX.set(res.x);
 
-    // Task 1: v-side parallelism. Each displayed leg's v-side direction
-    // is the segment (pts[2j], pts[2j+1]); two legs are parallel when the
-    // sine of the angle between their directions is ~0. Entering
-    // parallelism fires one yellow blink; staying parallel (the straight
-    // pair at an attachment snap) holds both v-sides solid yellow, and
-    // the matching row in the top-right short-pair list highlights.
-    const dirs = [];
-    for (let j = 0; j < 4; j++) {
-      dirs.push([
-        pts[2 * j + 1][0] - pts[2 * j][0],
-        pts[2 * j + 1][1] - pts[2 * j][1],
-        pts[2 * j + 1][2] - pts[2 * j][2],
-      ]);
-    }
+    // Task 1: leg parallelism. Two legs are parallel when their x-columns
+    // are the same line in C^2 (up to the U(1)^4 phase gauge). The measure
+    // is legPairSine (sideview.js) — the SAME predicate the attachment probe
+    // uses, so the highlight and the probe cannot disagree. It must stay
+    // column-based: the su(2) polygon edge directions (pts[2j+1]-pts[2j])
+    // are the columns' Bloch vectors, which are ANTIPARALLEL for ORTHOGONAL
+    // columns exactly as they are parallel for PARALLEL ones, so an
+    // edge-sine test false-positives as t -> 1 (the columns turn orthogonal
+    // there and every polygon edge lit up — user-reported 2026-10-05).
+    // Entering parallelism fires one yellow blink; staying parallel (the
+    // straight pair at an attachment snap) holds both v-sides solid yellow,
+    // and the matching row in the top-right short-pair list highlights.
     const nowSolve = performance.now();
     for (let p = 0; p < 6; p++) {
-      const u = dirs[LEG_PAIRS[p][0]];
-      const v = dirs[LEG_PAIRS[p][1]];
-      const nu = Math.hypot(u[0], u[1], u[2]);
-      const nv = Math.hypot(v[0], v[1], v[2]);
-      const cr = [
-        u[1] * v[2] - u[2] * v[1],
-        u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0],
-      ];
-      const sine =
-        nu < 1e-12 || nv < 1e-12
-          ? Infinity
-          : Math.hypot(cr[0], cr[1], cr[2]) / (nu * nv);
+      const sine = legPairSine(res.x, LEG_PAIRS[p][0], LEG_PAIRS[p][1]);
       if (sine < PAIR_SINE_TOL && !legParallel[p]) {
         blinkPair = p;
         blinkStart = nowSolve;

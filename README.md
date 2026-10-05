@@ -7,7 +7,7 @@
 **An interactive, browser-native solver for the moduli space of four-sided star-quiver hyperpolygons.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://arya-yae.github.io/hyperpolygon-moduli-spaces/)
+[![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://arya-yae.github.io/hyperpolygon-simulation/)
 [![Tests](https://img.shields.io/badge/tests-node%20batteries-informational.svg)](#tests)
 
 <img src="assets/img/preview-dark.png" alt="The hyperpolygon widget: a telescoping polygon on the left, its position in the moduli space on the right" width="900">
@@ -26,7 +26,7 @@ beyond a vendored copy of three.js.
 
 | | |
 |---|---|
-| **Live** | **<https://arya-yae.github.io/hyperpolygon-moduli-spaces/>** (GitHub Pages) |
+| **Live** | **<https://arya-yae.github.io/hyperpolygon-simulation/>** (GitHub Pages) |
 | **Single file** | Download [`hyperpolygon.html`](hyperpolygon.html) — everything inlined, works offline when opened over HTTP |
 | **Local** | `python3 -m http.server 8000` in this folder, then open <http://localhost:8000/> |
 

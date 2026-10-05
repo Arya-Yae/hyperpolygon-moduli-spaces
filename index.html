@@ -167,5 +167,69 @@
     apply();
   })();
 </script>
+<script>
+  // Embed bridge: when this page is framed by the site's project page, report the
+  // content height for iframe auto-sizing and accept live theme changes. No-op when
+  // the page is opened directly.
+  (function () {
+    var params = new URLSearchParams(location.search);
+
+    function systemTheme() {
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    // Honor ?theme, then the site's shared same-origin preference, then system.
+    if (!params.get("theme")) {
+      var stored = null;
+      try {
+        stored = localStorage.getItem("theme");
+      } catch (e) {}
+      if (stored === "dark" || stored === "light") {
+        document.documentElement.setAttribute("data-theme", stored);
+      } else if (stored === "system") {
+        document.documentElement.setAttribute("data-theme", systemTheme());
+      }
+    }
+
+    if (window.parent === window) return;
+
+    function parentOrigin() {
+      try {
+        if (document.location.ancestorOrigins && document.location.ancestorOrigins.length) {
+          return document.location.ancestorOrigins[0];
+        }
+        if (document.referrer) return new URL(document.referrer).origin;
+      } catch (e) {}
+      return "*";
+    }
+
+    function postHeight() {
+      try {
+        window.parent.postMessage(
+          { type: "hyperpolygon-height", height: document.documentElement.scrollHeight },
+          parentOrigin()
+        );
+      } catch (e) {}
+    }
+
+    if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+    window.addEventListener("load", postHeight);
+    window.addEventListener("resize", postHeight);
+    postHeight();
+
+    window.addEventListener("message", function (event) {
+      var data = event.data;
+      if (
+        data &&
+        data.type === "hyperpolygon-theme" &&
+        (data.theme === "dark" || data.theme === "light")
+      ) {
+        document.documentElement.setAttribute("data-theme", data.theme);
+      }
+    });
+  })();
+</script>
 </body>
 </html>

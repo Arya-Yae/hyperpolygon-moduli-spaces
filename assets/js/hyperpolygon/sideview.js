@@ -34,7 +34,6 @@ import {
   scale3,
   dot3,
   cross3,
-  len3,
   unit3,
   spherePoint,
 } from "./sideview-shared.js";
@@ -157,11 +156,10 @@ const ARC_N = 33;
 
 // Attachment-point parallel-pair probe thresholds: a slot qualifies when
 // its pair sine is < PARALLEL_TOL and at least PARALLEL_RATIO times
-// smaller than the runner-up slot's (both chamber-short slots; the
-// measured margins are ~1e4 or better). PARALLEL_TOL is EXPORTED and
-// shared with widget.js's polygon-view straight-pair highlight
-// (PAIR_SINE_TOL) so the two views cannot disagree about which pair is
-// straight.
+// smaller than the runner-up slot's (both chamber-short slots). PARALLEL_TOL
+// is EXPORTED and shared with widget.js's polygon-view straight-pair
+// highlight (PAIR_SINE_TOL), and BOTH views call the SAME predicate below
+// (legPairSine) so they cannot disagree about which pair is straight.
 export const PARALLEL_TOL = 1e-3;
 const PARALLEL_RATIO = 10;
 // Retry theta when the theta = 0 solve is unusable: the documented
@@ -169,6 +167,31 @@ const PARALLEL_RATIO = 10;
 // and the geometric parallel-pair residual grows only ~linearly in
 // theta, so 1e-4 stays under PARALLEL_TOL while escaping the basin.
 const PROBE_THETA_RETRY = 1e-4;
+
+// Single source of truth for "are displayed legs a and b parallel?", used
+// by the attachment probe (measureSlots) AND the widget's polygon-view
+// highlight. A leg is its x-column (a line in C^2 up to the U(1)^4 phase
+// gauge), so two legs are parallel iff their columns span the same line;
+// the measure is the projective sine
+//   sqrt(1 - |<c_a,c_b>|^2 / (|c_a|^2 |c_b|^2))
+// (0 = parallel, 1 = orthogonal), and it is gauge-invariant.
+// IMPORTANT: do NOT use the su(2) polygon edge directions
+// (pts[2j+1]-pts[2j]) here. Those are the columns' Bloch vectors, which
+// are ANTIPARALLEL for ORTHOGONAL columns exactly as they are parallel for
+// PARALLEL ones, so an edge-sine test false-positives as t -> 1 (and on
+// orthogonal candidate slots at t = 0). x is the solver's 2x4 matrix:
+// x[row][leg] = [re, im]. Returns Infinity when either column vanishes.
+export function legPairSine(x, a, b) {
+  const a0 = x[0][a], a1 = x[1][a], b0 = x[0][b], b1 = x[1][b];
+  const na = Math.hypot(a0[0], a0[1], a1[0], a1[1]);
+  const nb = Math.hypot(b0[0], b0[1], b1[0], b1[1]);
+  if (na < 1e-12 || nb < 1e-12) return Infinity;
+  // <c_a|c_b> = conj(a0) b0 + conj(a1) b1
+  const re = a0[0] * b0[0] + a0[1] * b0[1] + a1[0] * b1[0] + a1[1] * b1[1];
+  const im = a0[0] * b0[1] - a0[1] * b0[0] + a1[0] * b1[1] - a1[1] * b1[0];
+  const m = Math.hypot(re, im) / (na * nb);
+  return m >= 1 ? 0 : Math.sqrt(1 - m * m);
+}
 
 // sub3/add3/scale3/dot3/cross3/len3/unit3 and spherePoint now live in
 // ./sideview-shared.js (imported + re-exported above), shared with the
@@ -499,35 +522,13 @@ function measureSlots(r, theta, beta, chamberShorts) {
   for (let i = 0; i < V.length; i++) {
     if (!Number.isFinite(V[i][0]) || !Number.isFinite(V[i][1]) || !Number.isFinite(V[i][2])) return null;
   }
-  const edges = [];
-  for (let i = 0; i < 8; i++) edges.push(sub3(V[i + 1], V[i]));
-  // displayed leg j owns edges (2j, 2j+1); under either PERMUTE_23 pattern
+  // displayed leg j owns x-column j; under either PERMUTE_23 pattern
   // displayed j IS user leg j (see PERM note)
   const out = [];
   for (let s = 5; s <= 7; s++) {
-    out.push(pairSine(edges, chamberShorts[s][0], chamberShorts[s][1]));
+    out.push(legPairSine(res.x, chamberShorts[s][0], chamberShorts[s][1]));
   }
   return out;
-}
-
-// Min sine of the angle between one edge from displayed leg a and one
-// from displayed leg b, over combos where both edges are non-degenerate
-// (at t = 0 each leg's second edge has zero length). Infinity when a leg
-// has no measurable edge.
-function pairSine(edges, a, b) {
-  let m = Infinity;
-  for (let ia = 0; ia < 2; ia++) {
-    for (let ib = 0; ib < 2; ib++) {
-      const u = edges[2 * a + ia];
-      const v = edges[2 * b + ib];
-      const nu = len3(u);
-      const nv = len3(v);
-      if (nu < 1e-12 || nv < 1e-12) continue;
-      const s = len3(cross3(u, v)) / (nu * nv);
-      if (s < m) m = s;
-    }
-  }
-  return m;
 }
 
 // ---------------------------------------------------------------------------
