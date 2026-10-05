@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hyperpolygon moduli spaces logo: telescoping quadrilateral">
+  <style>
+    .edge { stroke: #212529; }
+    @media (prefers-color-scheme: dark) { .edge { stroke: #e9ecef; } }
+  </style>
+
+  <!-- telescoping quadrilateral: diamond on the integer lattice -->
+  <g class="edge" stroke-width="18" stroke-linecap="round" fill="none">
+    <line x1="256" y1="64"  x2="448" y2="256"/>
+    <line x1="448" y1="256" x2="256" y2="448"/>
+    <line x1="256" y1="448" x2="64"  y2="256"/>
+    <line x1="64"  y1="256" x2="256" y2="64"/>
+  </g>
+
+  <!-- green telescoping segments: one quarter of each edge, each reaching a corner -->
+  <g stroke="#34c06e" stroke-width="26" stroke-linecap="round" fill="none">
+    <line x1="400" y1="208" x2="448" y2="256"/>
+    <line x1="304" y1="400" x2="256" y2="448"/>
+    <line x1="112" y1="304" x2="64"  y2="256"/>
+    <line x1="208" y1="112" x2="256" y2="64"/>
+  </g>
+</svg>

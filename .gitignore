@@ -1,0 +1,10 @@
+# Machine-local V8/FP-dependent fingerprint golden; regenerate on demand.
+fingerprint-golden.json
+tests/fingerprint-golden.json
+
+# Live widget modules copied in by tests/run.sh before running the batteries.
+tests/solver.js
+tests/orientation.js
+tests/chambers.js
+tests/sideview.js
+tests/sideview-shared.js
