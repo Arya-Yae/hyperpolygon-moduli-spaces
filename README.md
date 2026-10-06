@@ -172,11 +172,12 @@ See [`tests/README.md`](tests/README.md) for the full description.
 
 ## Updates
 
-While this widget also lives on its author's personal website, this repository
-is the standalone packaging. The `assets/js/hyperpolygon/` modules are the
-source of truth; `hyperpolygon.html` and the README media are generated. A sync
-script in the parent project copies updated modules in and regenerates the
-single-file build and media, so the two stay in lock-step.
+This repository is the **source of truth** for the widget. The
+`assets/js/hyperpolygon/` modules and the `tests/` batteries are authored and
+validated here (`bash tests/run.sh`); `hyperpolygon.html` and the README media
+are generated locally by `tools/`. The copy on the author's personal website
+is a downstream mirror: a sync script there pulls the modules and batteries in
+and re-runs its own gate, so the two stay in lock-step.
 
 ## Author
 
