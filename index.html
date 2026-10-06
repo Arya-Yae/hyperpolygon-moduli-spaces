@@ -15,19 +15,21 @@
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
   :root {
-    --bg: #0e1116;
-    --fg: #e6e9ee;
-    --muted: #9aa4b2;
-    --panel: #151a22;
-    --border: #2a313c;
-    --accent: #6ea8fe;
+    /* al-folio dark palette (--global-* in _themes.scss) so the iframe blends
+       with the host site instead of reading as blue-slate. */
+    --bg: #1c1c1d;
+    --fg: #e8e8e8;
+    --muted: #828282;
+    --panel: #212529;
+    --border: #424246;
+    --accent: #2698ba;
   }
   [data-theme="light"] {
-    --bg: #f7f8fa;
+    --bg: #ffffff;
     --fg: #151a22;
-    --muted: #5b6572;
+    --muted: #828282;
     --panel: #ffffff;
-    --border: #d7dce3;
+    --border: #e6e6e6;
     --accent: #2f6fd0;
   }
   * { box-sizing: border-box; }
