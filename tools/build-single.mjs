@@ -1,8 +1,15 @@
 // build-single.mjs — bundle the standalone hyperpolygon widget into ONE
-// self-contained, offline HTML file.
+// HTML file.
 //
 // Node 12, ESM (.mjs), dependency-free. Run from anywhere:
 //   node hyperpolygon-standalone/tools/build-single.mjs
+//
+// The page shell (markup, CSS, intro text, inline scripts) is read verbatim
+// from index.html, so the two pages cannot drift; only the external
+// references are swapped for inlined equivalents (logo -> data URI, the
+// three.js/OrbitControls classic scripts and the ES-module widget bundle ->
+// inlined <script> tags). MathJax stays a CDN <script> (its LaTeX math
+// needs the network); everything else is self-contained.
 //
 // Approach: each ES module is wrapped in an IIFE that returns its exports
 // (so modules with colliding top-level names cannot clash), and the
@@ -167,6 +174,20 @@ function escapeForScript(js) {
     .replace(/https?:\/\//g, (m) => m.replace(/\//g, "\\/"));
 }
 
+// Replace exactly one occurrence, failing loudly if index.html drifted so
+// the generated bundle can never silently reference a missing asset.
+function replaceOnce(text, find, repl, label) {
+  const i = text.indexOf(find);
+  if (i === -1) {
+    throw new Error(
+      "build-single: could not find " +
+        label +
+        " in index.html; its markup changed, update the transform"
+    );
+  }
+  return text.slice(0, i) + repl + text.slice(i + find.length);
+}
+
 // ---------------------------------------------------------------------------
 // build
 // ---------------------------------------------------------------------------
@@ -184,188 +205,48 @@ function build() {
   const logoSvg = fs.readFileSync(path.join(ROOT, "assets", "img", "hyperpolygon-logo.svg"));
   const logoURI = "data:image/svg+xml;base64," + logoSvg.toString("base64");
 
-  const html = [
-    "<!DOCTYPE html>",
-    '<html lang="en" data-theme="dark">',
-    "<head>",
-    '<meta charset="utf-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    "<title>Hyperpolygon Moduli Spaces</title>",
-    '<meta name="description" content="Interactive browser solver for the moduli space of four-sided star-quiver hyperpolygons.">',
-    '<link rel="icon" href="' + logoURI + '">',
-    "<style>",
-    CSS,
-    "</style>",
-    "</head>",
-    "<body>",
-    '<div class="wrap">',
-    '  <div class="topbar"><button class="theme-toggle" id="theme-toggle" type="button">Light / dark</button></div>',
-    "",
-    '  <header class="hero">',
-    '    <img src="' + logoURI + '" alt="Hyperpolygon logo">',
-    "    <div>",
-    "      <h1>Hyperpolygon Moduli Spaces</h1>",
-    '      <p class="sub">A live browser solver for the four-sided star quiver</p>',
-    "    </div>",
-    "  </header>",
-    "",
-    '  <div class="intro">',
-    "    <p>",
-    "      Let Q be the four-sided star quiver with dimension vector (2,1,1,1,1).",
-    "      A representation of Q consists of a 2&times;4 matrix x with columns",
-    "      x<sub>1</sub>,&hellip;,x<sub>4</sub>, and a 4&times;2 matrix y with rows",
-    "      y<sub>1</sub>,&hellip;,y<sub>4</sub>. The <em>hyperpolygon space</em>",
-    "      X(&beta;&#8407;) is the four-dimensional moduli space of solutions to the",
-    "      moment map equations",
-    "    </p>",
-    '    <p class="eq">',
-    "      &mu;<sub>SL(2,&#8450;)</sub>(x,y) = &sum;<sub>i=1</sub><sup>4</sup> x<sub>i</sub> y<sub>i</sub> = 0,",
-    "    </p>",
-    "    <p class=\"eq\">",
-    "      &mu;<sub>GL(1,&#8450;),i</sub>(x,y) = y<sub>i</sub> x<sub>i</sub> = 0,",
-    "    </p>",
-    "    <p class=\"eq\">",
-    "      &mu;<sub>SU(2)</sub>(x,y) = &sum;<sub>i=1</sub><sup>4</sup> (x<sub>i</sub>x<sub>i</sub><sup>&dagger;</sup>)<sub>0</sub> &minus; (y<sub>i</sub><sup>&dagger;</sup>y<sub>i</sub>)<sub>0</sub> = 0,",
-    "    </p>",
-    "    <p class=\"eq\">",
-    "      &mu;<sub>U(1),i</sub>(x,y) = &frac12; ( |x<sub>i</sub>|<sup>2</sup> &minus; |y<sub>i</sub>|<sup>2</sup> ) = &beta;<sub>i</sub>,",
-    "    </p>",
-    "    <p>",
-    "      up to the action of the symmetry group G = SU(2) &times; U(1)<sup>4</sup>.",
-    "      Set v<sub>i</sub> = (x<sub>i</sub>x<sub>i</sub><sup>&dagger;</sup>)<sub>0</sub> and",
-    "      w<sub>i</sub> = (y<sub>i</sub><sup>&dagger;</sup>y<sub>i</sub>)<sub>0</sub>. Then",
-    "      &mu;<sub>GL(1,&#8450;),i</sub> = 0 makes v<sub>i</sub> and w<sub>i</sub> point in opposite",
-    "      directions, &mu;<sub>U(1),i</sub> = &beta;<sub>i</sub> constrains the side lengths",
-    "      |v<sub>i</sub>| &minus; |w<sub>i</sub>| = &radic;2 &beta;<sub>i</sub>, and",
-    "      &mu;<sub>su(2)</sub> = 0 is the closure condition &sum;<sub>i</sub>(v<sub>i</sub> &minus; w<sub>i</sub>) = 0.",
-    "      The v<sub>i</sub> and w<sub>i</sub> therefore assemble into a telescoping polygon in",
-    "      su(2) &cong; &#8477;<sup>3</sup>, taken up to SO(3) rotations.",
-    "    </p>",
-    "    <p>",
-    "      This simulation solves the moment map equations live as you vary the sliders.",
-    "      The right view shows your position within the four-dimensional moduli space; the",
-    "      left view displays the corresponding hyperpolygon. Click <strong>Tutorial</strong>",
-    "      for a guided tour.",
-    "    </p>",
-    '    <p class="controls-hint">',
-    "      Drag the sliders (<em>r</em>, <em>&theta;</em>, <em>t</em>, <em>&phi;</em> and the",
-    "      stability parameters &beta;<sub>i</sub>) to walk the moduli space, and use",
-    "      <strong>Cross&nbsp;Wall</strong> to flop between stability chambers.",
-    "    </p>",
-    "  </div>",
-    "",
-    '  <div id="hyperpolygon-widget"></div>',
-    "",
-    "  <footer>",
-    "    Interactive simulation of the moduli space of hyperpolygons. See the repository",
-    "    README for the mathematical background, architecture and tests.",
-    "  </footer>",
-    "</div>",
-    "",
-    "<script>",
-    escapeForScript(three),
-    "</script>",
-    "<script>",
-    escapeForScript(orbit),
-    "</script>",
-    '<script type="module">',
-    escapeForScript(moduleBundle),
-    "</script>",
-    "<script>",
-    PARAMS_SCRIPT,
-    "</script>",
-    "</body>",
-    "</html>",
-    "",
-  ].join("\n");
+  // index.html is the single source of truth for the page shell: markup,
+  // CSS, intro text, theme toggle, URL-param and embed-bridge scripts all
+  // come straight from it. We only swap the external references for their
+  // inlined equivalents. (MathJax stays a CDN <script> so its LaTeX math
+  // needs the network; everything else is self-contained.)
+  const INDEX = path.join(ROOT, "index.html");
+  let html = fs.readFileSync(INDEX, "utf8");
+
+  html = replaceOnce(
+    html,
+    'href="assets/img/hyperpolygon-logo.svg"',
+    'href="' + logoURI + '"',
+    "logo <link> icon"
+  );
+  html = replaceOnce(
+    html,
+    'src="assets/img/hyperpolygon-logo.svg"',
+    'src="' + logoURI + '"',
+    "hero <img> logo"
+  );
+  html = replaceOnce(
+    html,
+    '<script src="assets/js/hyperpolygon/lib/three.min.js"></script>',
+    "<script>\n" + escapeForScript(three) + "\n</script>",
+    "three.min.js <script>"
+  );
+  html = replaceOnce(
+    html,
+    '<script src="assets/js/hyperpolygon/lib/OrbitControls.js"></script>',
+    "<script>\n" + escapeForScript(orbit) + "\n</script>",
+    "OrbitControls.js <script>"
+  );
+  html = replaceOnce(
+    html,
+    '<script type="module" src="assets/js/hyperpolygon/widget.js"></script>',
+    '<script type="module">\n' + escapeForScript(moduleBundle) + "\n</script>",
+    "widget.js <script type=module>"
+  );
 
   fs.writeFileSync(OUT, html);
   return { order, deps, bytes: Buffer.byteLength(html) };
 }
-
-const CSS = `  :root {
-    --bg: #0e1116;
-    --fg: #e6e9ee;
-    --muted: #9aa4b2;
-    --panel: #151a22;
-    --border: #2a313c;
-    --accent: #6ea8fe;
-  }
-  [data-theme="light"] {
-    --bg: #f7f8fa;
-    --fg: #151a22;
-    --muted: #5b6572;
-    --panel: #ffffff;
-    --border: #d7dce3;
-    --accent: #2f6fd0;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 72px; }
-  header.hero { display: flex; align-items: center; gap: 18px; margin-bottom: 8px; }
-  header.hero img { width: 64px; height: 64px; }
-  header.hero h1 { font-size: 1.9rem; margin: 0; letter-spacing: -0.01em; }
-  header.hero .sub { color: var(--muted); margin: 2px 0 0; font-size: 0.95rem; }
-  .intro { max-width: 820px; color: var(--fg); margin: 18px 0 8px; }
-  .intro p { margin: 0.7em 0; }
-  .intro p.eq { text-align: center; font-size: 1.05rem; margin: 0.45em 0; }
-  .controls-hint { color: var(--muted); font-size: 0.92rem; }
-  #hyperpolygon-widget { margin-top: 22px; }
-  body.hp-bare { background: var(--bg); }
-  body.hp-bare .topbar,
-  body.hp-bare header.hero,
-  body.hp-bare .intro,
-  body.hp-bare footer { display: none; }
-  body.hp-bare .wrap { padding: 0; max-width: none; }
-  body.hp-bare #hyperpolygon-widget { margin-top: 0; }
-  footer { margin-top: 40px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 16px; }
-  footer a { color: var(--accent); }
-  .topbar { display: flex; justify-content: flex-end; }
-  button.theme-toggle {
-    background: var(--panel); color: var(--fg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: 0.85rem;
-  }
-  button.theme-toggle:hover { border-color: var(--accent); }`;
-
-const PARAMS_SCRIPT = `  (function () {
-    var toggle = document.getElementById("theme-toggle");
-    toggle.addEventListener("click", function () {
-      var root = document.documentElement;
-      root.setAttribute("data-theme", root.getAttribute("data-theme") === "dark" ? "light" : "dark");
-    });
-
-    // URL parameters freeze the widget at a chosen state:
-    //   ?r=0.5&theta=0&t=0.4&phi=0&beta=0.4,0.5,0.5,0.25&theme=dark
-    var params = new URLSearchParams(location.search);
-    if (params.get("theme")) document.documentElement.setAttribute("data-theme", params.get("theme"));
-    if (params.has("bare")) document.body.classList.add("hp-bare");
-    var hasState = ["r", "theta", "t", "phi", "beta"].some(function (k) { return params.has(k); });
-    if (!hasState) return;
-
-    function apply() {
-      var sliders = document.querySelectorAll("#hyperpolygon-widget .hp-slider");
-      if (!sliders.length) { setTimeout(apply, 50); return; }
-      function set(i, v) {
-        if (i >= sliders.length || v == null) return;
-        sliders[i].value = v;
-        sliders[i].dispatchEvent(new Event("input", { bubbles: true }));
-      }
-      set(0, params.get("r"));
-      set(1, params.get("theta"));
-      set(2, params.get("t"));
-      set(3, params.get("phi"));
-      var beta = params.get("beta");
-      if (beta) beta.split(",").forEach(function (v, k) { set(4 + k, v); });
-      window.__hpReady = true;
-      document.documentElement.setAttribute("data-hp-ready", "1");
-    }
-    apply();
-  })();`;
 
 const info = build();
 console.log("wrote " + OUT);

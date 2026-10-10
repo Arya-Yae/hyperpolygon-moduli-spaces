@@ -6,21 +6,30 @@
 <title>Hyperpolygon Moduli Spaces</title>
 <meta name="description" content="Interactive browser solver for the moduli space of four-sided star-quiver hyperpolygons.">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiByb2xlPSJpbWciIGFyaWEtbGFiZWw9Ikh5cGVycG9seWdvbiBtb2R1bGkgc3BhY2VzIGxvZ286IHRlbGVzY29waW5nIHF1YWRyaWxhdGVyYWwiPgogIDxzdHlsZT4KICAgIC5lZGdlIHsgc3Ryb2tlOiAjMjEyNTI5OyB9CiAgICBAbWVkaWEgKHByZWZlcnMtY29sb3Itc2NoZW1lOiBkYXJrKSB7IC5lZGdlIHsgc3Ryb2tlOiAjZTllY2VmOyB9IH0KICA8L3N0eWxlPgoKICA8IS0tIHRlbGVzY29waW5nIHF1YWRyaWxhdGVyYWw6IGRpYW1vbmQgb24gdGhlIGludGVnZXIgbGF0dGljZSAtLT4KICA8ZyBjbGFzcz0iZWRnZSIgc3Ryb2tlLXdpZHRoPSIxOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIj4KICAgIDxsaW5lIHgxPSIyNTYiIHkxPSI2NCIgIHgyPSI0NDgiIHkyPSIyNTYiLz4KICAgIDxsaW5lIHgxPSI0NDgiIHkxPSIyNTYiIHgyPSIyNTYiIHkyPSI0NDgiLz4KICAgIDxsaW5lIHgxPSIyNTYiIHkxPSI0NDgiIHgyPSI2NCIgIHkyPSIyNTYiLz4KICAgIDxsaW5lIHgxPSI2NCIgIHkxPSIyNTYiIHgyPSIyNTYiIHkyPSI2NCIvPgogIDwvZz4KCiAgPCEtLSBncmVlbiB0ZWxlc2NvcGluZyBzZWdtZW50czogb25lIHF1YXJ0ZXIgb2YgZWFjaCBlZGdlLCBlYWNoIHJlYWNoaW5nIGEgY29ybmVyIC0tPgogIDxnIHN0cm9rZT0iIzM0YzA2ZSIgc3Ryb2tlLXdpZHRoPSIyNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIj4KICAgIDxsaW5lIHgxPSI0MDAiIHkxPSIyMDgiIHgyPSI0NDgiIHkyPSIyNTYiLz4KICAgIDxsaW5lIHgxPSIzMDQiIHkxPSI0MDAiIHgyPSIyNTYiIHkyPSI0NDgiLz4KICAgIDxsaW5lIHgxPSIxMTIiIHkxPSIzMDQiIHgyPSI2NCIgIHkyPSIyNTYiLz4KICAgIDxsaW5lIHgxPSIyMDgiIHkxPSIxMTIiIHgyPSIyNTYiIHkyPSI2NCIvPgogIDwvZz4KPC9zdmc+">
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [["$", "$"], ["\\(", "\\)"]], displayMath: [["$$", "$$"], ["\\[", "\\]"]] },
+    svg: { fontCache: "global" },
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <style>
   :root {
-    --bg: #0e1116;
-    --fg: #e6e9ee;
-    --muted: #9aa4b2;
-    --panel: #151a22;
-    --border: #2a313c;
-    --accent: #6ea8fe;
+    /* al-folio dark palette (--global-* in _themes.scss) so the iframe blends
+       with the host site instead of reading as blue-slate. */
+    --bg: #1c1c1d;
+    --fg: #e8e8e8;
+    --muted: #828282;
+    --panel: #212529;
+    --border: #424246;
+    --accent: #2698ba;
   }
   [data-theme="light"] {
-    --bg: #f7f8fa;
+    --bg: #ffffff;
     --fg: #151a22;
-    --muted: #5b6572;
+    --muted: #828282;
     --panel: #ffffff;
-    --border: #d7dce3;
+    --border: #e6e6e6;
     --accent: #2f6fd0;
   }
   * { box-sizing: border-box; }
@@ -37,7 +46,6 @@
   header.hero .sub { color: var(--muted); margin: 2px 0 0; font-size: 0.95rem; }
   .intro { max-width: 820px; color: var(--fg); margin: 18px 0 8px; }
   .intro p { margin: 0.7em 0; }
-  .intro p.eq { text-align: center; font-size: 1.05rem; margin: 0.45em 0; }
   .controls-hint { color: var(--muted); font-size: 0.92rem; }
   #hyperpolygon-widget { margin-top: 22px; }
   body.hp-bare { background: var(--bg); }
@@ -71,35 +79,36 @@
 
   <div class="intro">
     <p>
-      Let Q be the four-sided star quiver with dimension vector (2,1,1,1,1).
-      A representation of Q consists of a 2&times;4 matrix x with columns
-      x<sub>1</sub>,&hellip;,x<sub>4</sub>, and a 4&times;2 matrix y with rows
-      y<sub>1</sub>,&hellip;,y<sub>4</sub>. The <em>hyperpolygon space</em>
-      X(&beta;&#8407;) is the four-dimensional moduli space of solutions to the
-      moment map equations
-    </p>
-    <p class="eq">
-      &mu;<sub>SL(2,&#8450;)</sub>(x,y) = &sum;<sub>i=1</sub><sup>4</sup> x<sub>i</sub> y<sub>i</sub> = 0,
-    </p>
-    <p class="eq">
-      &mu;<sub>GL(1,&#8450;),i</sub>(x,y) = y<sub>i</sub> x<sub>i</sub> = 0,
-    </p>
-    <p class="eq">
-      &mu;<sub>SU(2)</sub>(x,y) = &sum;<sub>i=1</sub><sup>4</sup> (x<sub>i</sub>x<sub>i</sub><sup>&dagger;</sup>)<sub>0</sub> &minus; (y<sub>i</sub><sup>&dagger;</sup>y<sub>i</sub>)<sub>0</sub> = 0,
-    </p>
-    <p class="eq">
-      &mu;<sub>U(1),i</sub>(x,y) = &frac12; ( |x<sub>i</sub>|<sup>2</sup> &minus; |y<sub>i</sub>|<sup>2</sup> ) = &beta;<sub>i</sub>,
+      Let \(Q\) be the four-sided star quiver with dimension vector \((2,1,1,1,1)\).
+      A representation of \(Q\) consists of a \(2\times 4\) matrix \(x\) with columns
+      \(x_1,\dots,x_4\), and a \(4\times 2\) matrix \(y\) with rows \(y_1,\dots,y_4\).
+      The <em>hyperpolygon space</em> \(\mathcal X(\vec\beta)\) is the four-dimensional
+      moduli space of solutions to the moment map equations
     </p>
     <p>
-      up to the action of the symmetry group G = SU(2) &times; U(1)<sup>4</sup>.
-      Set v<sub>i</sub> = (x<sub>i</sub>x<sub>i</sub><sup>&dagger;</sup>)<sub>0</sub> and
-      w<sub>i</sub> = (y<sub>i</sub><sup>&dagger;</sup>y<sub>i</sub>)<sub>0</sub>. Then
-      &mu;<sub>GL(1,&#8450;),i</sub> = 0 makes v<sub>i</sub> and w<sub>i</sub> point in opposite
-      directions, &mu;<sub>U(1),i</sub> = &beta;<sub>i</sub> constrains the side lengths
-      |v<sub>i</sub>| &minus; |w<sub>i</sub>| = &radic;2 &beta;<sub>i</sub>, and
-      &mu;<sub>su(2)</sub> = 0 is the closure condition &sum;<sub>i</sub>(v<sub>i</sub> &minus; w<sub>i</sub>) = 0.
-      The v<sub>i</sub> and w<sub>i</sub> therefore assemble into a telescoping polygon in
-      su(2) &cong; &#8477;<sup>3</sup>, taken up to SO(3) rotations.
+      \[
+        \mu_{\mathrm{SL}(2,\mathbb C)}(x,y)=\sum_{i=1}^{4}x_iy_i=0,
+      \]
+      \[
+        \mu_{\mathrm{GL}(1,\mathbb C),i}(x,y)=y_ix_i=0,
+      \]
+      \[
+        \mu_{\mathrm{SU}(2)}(x,y)=\sum_{i=1}^{4}(x_ix_i^\dagger)_0-(y_i^\dagger y_i)_0=0,
+      \]
+      \[
+        \mu_{\mathrm{U}(1),i}(x,y)=\frac12\left(|x_i|^2-|y_i|^2\right)=\beta_i,
+      \]
+    </p>
+    <p>
+      up to the action of the symmetry group \(G=\mathrm{SU}(2)\times\mathrm{U}(1)^4\).
+      By defining the vectors \(v_i=(x_ix_i^\dagger)_0\) and \(w_i=(y_i^\dagger y_i)_0\) in \(\mathfrak{su}(2)\cong\mathbb R^3\), we can interpret solutions as telescoping polygons up to \(\mathrm{SO}(3)\) rotations.
+      <!-- . Then
+      \(\mu_{\mathrm{GL}(1,\mathbb C),i}=0\) makes \(v_i\) and \(w_i\) point in opposite
+      directions, \(\mu_{\mathrm{U}(1),i}=\beta_i\) constrains the side lengths
+      \(|v_i|-|w_i|=\sqrt2\,\beta_i\), and \(\mu_{\mathfrak{su}(2)}=0\) is the closure
+      condition \(\sum_i(v_i-w_i)=0\). The \(v_i\) and \(w_i\) therefore assemble into a
+      telescoping polygon in \(\mathfrak{su}(2)\cong\mathbb R^3\), taken up to
+      \(\mathrm{SO}(3)\) rotations. -->
     </p>
     <p>
       This simulation solves the moment map equations live as you vary the sliders.
@@ -7768,7 +7777,7 @@ return {  };
       root.setAttribute("data-theme", root.getAttribute("data-theme") === "dark" ? "light" : "dark");
     });
 
-    // URL parameters freeze the widget at a chosen state:
+    // URL parameters let tools/capture.mjs freeze the widget at a chosen state:
     //   ?r=0.5&theta=0&t=0.4&phi=0&beta=0.4,0.5,0.5,0.25&theme=dark
     var params = new URLSearchParams(location.search);
     if (params.get("theme")) document.documentElement.setAttribute("data-theme", params.get("theme"));
@@ -7794,6 +7803,70 @@ return {  };
       document.documentElement.setAttribute("data-hp-ready", "1");
     }
     apply();
+  })();
+</script>
+<script>
+  // Embed bridge: when this page is framed by the site's project page, report the
+  // content height for iframe auto-sizing and accept live theme changes. No-op when
+  // the page is opened directly.
+  (function () {
+    var params = new URLSearchParams(location.search);
+
+    function systemTheme() {
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    // Honor ?theme, then the site's shared same-origin preference, then system.
+    if (!params.get("theme")) {
+      var stored = null;
+      try {
+        stored = localStorage.getItem("theme");
+      } catch (e) {}
+      if (stored === "dark" || stored === "light") {
+        document.documentElement.setAttribute("data-theme", stored);
+      } else if (stored === "system") {
+        document.documentElement.setAttribute("data-theme", systemTheme());
+      }
+    }
+
+    if (window.parent === window) return;
+
+    function parentOrigin() {
+      try {
+        if (document.location.ancestorOrigins && document.location.ancestorOrigins.length) {
+          return document.location.ancestorOrigins[0];
+        }
+        if (document.referrer) return new URL(document.referrer).origin;
+      } catch (e) {}
+      return "*";
+    }
+
+    function postHeight() {
+      try {
+        window.parent.postMessage(
+          { type: "hyperpolygon-height", height: document.documentElement.scrollHeight },
+          parentOrigin()
+        );
+      } catch (e) {}
+    }
+
+    if (window.ResizeObserver) new ResizeObserver(postHeight).observe(document.body);
+    window.addEventListener("load", postHeight);
+    window.addEventListener("resize", postHeight);
+    postHeight();
+
+    window.addEventListener("message", function (event) {
+      var data = event.data;
+      if (
+        data &&
+        data.type === "hyperpolygon-theme" &&
+        (data.theme === "dark" || data.theme === "light")
+      ) {
+        document.documentElement.setAttribute("data-theme", data.theme);
+      }
+    });
   })();
 </script>
 </body>
